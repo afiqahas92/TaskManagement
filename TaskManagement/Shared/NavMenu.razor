@@ -1,0 +1,34 @@
+﻿<MudNavMenu>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+        Home
+    </MudNavLink>
+    <MudNavLink Href="/tasks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Checklist">
+        Tasks
+    </MudNavLink>
+</MudNavMenu>
+
+<style>
+    .mud-nav-link {
+        margin: 8px 12px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+        .mud-nav-link:hover {
+            background-color: rgba(0, 86, 179, 0.08);
+        }
+
+        .mud-nav-link.active {
+            background-color: #0056b3;
+            color: white;
+        }
+
+            .mud-nav-link.active:hover {
+                background-color: #004494;
+            }
+
+        .mud-nav-link .mud-nav-link-text {
+            font-size: 0.875rem;
+        }
+</style>

@@ -1,0 +1,145 @@
+﻿@using TaskManagement.Application.Features.Tasks.Commands
+@using TaskManagement.Domain.Entities
+@using TaskManagement.Application.Services
+@* @inject ITaskService TaskService *@
+@inject ITaskCQRSservice TaskCqrsService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudCard Class="mb-3" Elevation="1">
+    <MudCardContent Class="pa-4">
+        <div class="d-flex align-start gap-3">
+            <!-- Checkbox -->
+            <MudCheckBox @bind-Value="@TaskItem.IsCompleted"
+                         Color="Color.Success"
+                         Size="Size.Medium"
+                         CheckedChanged="@((bool val) => ToggleCompletion())"
+                         Class="mt-1" />
+
+            <!-- Content -->
+            <div class="flex-grow-1" style="min-width: 0;">
+                <MudText Typo="Typo.subtitle1"
+                         Class="@(TaskItem.IsCompleted ? "text-decoration-line-through" : "")"
+                         Color="@(TaskItem.IsCompleted ? Color.Secondary : Color.Default)"
+                         Style="word-break: break-word;">
+                    @TaskItem.Title
+                </MudText>
+
+                @if (!string.IsNullOrWhiteSpace(TaskItem.Description))
+                {
+                    <MudText Typo="Typo.body2"
+                             Class="@(TaskItem.IsCompleted ? "text-decoration-line-through mt-1" : "mt-1")"
+                             Color="Color.Secondary"
+                             Style="word-break: break-word;">
+                        @TaskItem.Description
+                    </MudText>
+                }
+
+                <div class="d-flex align-center gap-1 mt-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Color="Color.Secondary" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @GetFormattedDate(TaskItem.CreatedAt)
+                    </MudText>
+                </div>
+
+                @if (TaskItem.IsCompleted)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="mt-2" Icon="@Icons.Material.Filled.CheckCircle">
+                        Completed
+                    </MudChip>
+                }
+            </div>
+
+            <!-- Actions -->
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Color="Color.Error"
+                           OnClick="ShowDeleteConfirmation"
+                           Size="Size.Small"
+                           Variant="Variant.Text"
+                           Title="Delete task" />
+        </div>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public TaskItem TaskItem { get; set; } = null!;
+    [Parameter] public EventCallback OnTaskUpdated { get; set; }
+    [Parameter] public EventCallback OnTaskDeleted { get; set; }
+
+    private string GetFormattedDate(DateTimeOffset date)
+    {
+        var localDate = date.ToLocalTime();
+        return localDate.ToString("MMM dd, yyyy • h:mm tt");
+    }
+
+    private async Task ShowDeleteConfirmation()
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(ConfirmationDialog.Title), "Delete Task" },
+            { nameof(ConfirmationDialog.Message), $"Are you sure you want to delete \"{TaskItem.Title}\"?" },
+            { nameof(ConfirmationDialog.WarningMessage), "This action cannot be undone." },
+            { nameof(ConfirmationDialog.ConfirmText), "Delete" },
+            { nameof(ConfirmationDialog.CancelText), "Cancel" },
+            { nameof(ConfirmationDialog.Icon), Icons.Material.Filled.DeleteForever },
+            { nameof(ConfirmationDialog.IconColor), Color.Error },
+            { nameof(ConfirmationDialog.ConfirmColor), Color.Error },
+            { nameof(ConfirmationDialog.ConfirmIcon), Icons.Material.Filled.Delete }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialogReference = await DialogService.ShowAsync<ConfirmationDialog>("", parameters, options);
+        var result = await dialogReference.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await DeleteTask();
+        }
+    }
+
+    private async Task ToggleCompletion()
+    {
+        try
+        {
+            var command = new ToggleTaskStatusCommand { TaskId = TaskItem.Id };
+            var updatedTask = await TaskCqrsService.ToggleTaskStatusAsync(command);
+
+            if (updatedTask != null)
+            {
+                TaskItem.IsCompleted = updatedTask.IsCompleted;
+                await OnTaskUpdated.InvokeAsync();
+
+                var status = updatedTask.IsCompleted ? "completed" : "marked as pending";
+                Snackbar.Add($"Task {status}", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to update task: {ex.Message}", Severity.Error);
+            TaskItem.IsCompleted = !TaskItem.IsCompleted;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteTask()
+    {
+        try
+        {
+            var command = new DeleteTaskCommand { TaskId = TaskItem.Id };
+            await TaskCqrsService.DeleteTaskAsync(command);
+            await OnTaskDeleted.InvokeAsync();
+            Snackbar.Add("Task deleted successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete task: {ex.Message}", Severity.Error);
+        }
+    }
+}

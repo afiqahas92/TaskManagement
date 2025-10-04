@@ -1,0 +1,67 @@
+﻿@page "/"
+<PageTitle>Home - Task Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+    <MudPaper Elevation="0" Class="pa-8 mb-6" Style="background: linear-gradient(135deg, #0056b3 0%, #003d82 100%); color: white; border-radius: 12px;">
+        <MudStack Spacing="4" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Large" Style="font-size: 4rem;" />
+            <MudText Typo="Typo.h3" Align="Align.Center" Style="font-weight: 500;">Welcome to Task Management</MudText>
+            <MudText Typo="Typo.h6" Align="Align.Center" Style="opacity: 0.9; font-weight: 300;">
+                Organize, track, and complete your tasks efficiently
+            </MudText>
+            <MudButton Class="gray lighten5" Variant="Variant.Filled"
+                       
+                       Size="Size.Large"
+                       Href="/tasks"
+                       EndIcon="@Icons.Material.Filled.ArrowForward"
+                       Style="margin-top: 1rem; color: #0056b3; font-weight: 500; padding: 12px 32px;">
+                Get Started
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="2" Class="pa-6" Style="height: 100%; border-radius: 8px; transition: transform 0.2s;">
+                <MudStack Spacing="3" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.AddTask" Color="Color.Primary" Size="Size.Large" />
+                    <MudText Typo="Typo.h6" Align="Align.Center" Style="font-weight: 500;">Create Tasks</MudText>
+                    <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
+                        Easily add new tasks with titles and descriptions to stay organized
+                    </MudText>
+                </MudStack>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="2" Class="pa-6" Style="height: 100%; border-radius: 8px; transition: transform 0.2s;">
+                <MudStack Spacing="3" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.DoneAll" Color="Color.Success" Size="Size.Large" />
+                    <MudText Typo="Typo.h6" Align="Align.Center" Style="font-weight: 500;">Track Progress</MudText>
+                    <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
+                        Mark tasks as completed and filter by status to monitor your progress
+                    </MudText>
+                </MudStack>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="2" Class="pa-6" Style="height: 100%; border-radius: 8px; transition: transform 0.2s;">
+                <MudStack Spacing="3" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Large" />
+                    <MudText Typo="Typo.h6" Align="Align.Center" Style="font-weight: 500;">Manage Tasks</MudText>
+                    <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
+                        Remove tasks you no longer need to keep your list clean
+                    </MudText>
+                </MudStack>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .mud-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+</style>

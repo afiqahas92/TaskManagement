@@ -1,0 +1,302 @@
+﻿@page "/tasks"
+@using Microsoft.AspNetCore.Components.Forms
+@using TaskManagement.Application.Features.Tasks.Commands
+@using TaskManagement.Application.Services
+@using TaskManagement.Application.DTOs
+@using TaskManagement.Domain.Entities
+@* @inject ITaskService TaskService *@
+@inject ISnackbar Snackbar
+@inject ITaskCQRSservice TaskCqrsService
+
+<PageTitle>Task Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6" Style="min-height: 100vh;">
+	<!-- Header -->
+	<div class="d-flex align-center justify-space-between mb-6">
+		<div>
+			<MudText Typo="Typo.h4" Class="mb-1" Style="font-weight: 500;">Task Management</MudText>
+			<MudText Typo="Typo.body2" Color="Color.Secondary">
+				Organize and track your daily tasks
+			</MudText>
+		</div>
+		<MudButton Variant="Variant.Text"
+				   Color="Color.Primary"
+				   StartIcon="@Icons.Material.Filled.Refresh"
+				   OnClick="LoadTasks"
+				   Size="Size.Medium"
+				   Style="font-weight: 500;">
+			REFRESH
+		</MudButton>
+	</div>
+
+	<!-- Add Task Form -->
+	<MudCard Class="mb-4" Elevation="2" Style="border-radius: 8px;">
+		<MudCardContent Class="pa-6">
+			<MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 500;">
+				<MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-1" />
+				Add New Task
+			</MudText>
+
+			<EditForm Model="newTask" OnValidSubmit="AddTask">
+				<DataAnnotationsValidator />
+				<MudGrid Spacing="3">
+					<MudItem xs="12">
+						<MudTextField @bind-Value="newTask.Title"
+									  Label="Task Title *"
+									  Placeholder="What needs to be done?"
+									  Variant="Variant.Outlined"
+									  Margin="Margin.Dense"
+									  For="@(() => newTask.Title)"
+									  Immediate="true" />
+						<ValidationMessage For="@(() => newTask.Title)" />
+					</MudItem>
+
+					<MudItem xs="12">
+						<MudTextField @bind-Value="newTask.Description"
+									  Label="Description"
+									  Placeholder="Add more details (optional)"
+									  Variant="Variant.Outlined"
+									  Margin="Margin.Dense"
+									  Lines="3"
+									  For="@(() => newTask.Description)" />
+						<ValidationMessage For="@(() => newTask.Description)" />
+					</MudItem>
+
+					<MudItem xs="12">
+						<div class="d-flex gap-2">
+							<MudButton ButtonType="ButtonType.Submit"
+									   Variant="Variant.Filled"
+									   Color="Color.Primary"
+									   StartIcon="@Icons.Material.Filled.Add"
+									   Disabled="@isAdding"
+									   Style="font-weight: 500;">
+								@(isAdding ? "ADDING..." : "ADD TASK")
+							</MudButton>
+							<MudButton ButtonType="ButtonType.Button"
+									   Variant="Variant.Text"
+									   Color="Color.Default"
+									   OnClick="ResetForm"
+									   Disabled="@isAdding"
+									   Style="font-weight: 500;">
+								CLEAR
+							</MudButton>
+						</div>
+					</MudItem>
+				</MudGrid>
+			</EditForm>
+		</MudCardContent>
+	</MudCard>
+
+	<!-- Stats & Filter -->
+	<MudCard Class="mb-4" Elevation="2" Style="border-radius: 8px;">
+		<MudCardContent Class="pa-4">
+			<MudChipSet T="string" Class="d-flex justify-center gap-2" Style="flex-wrap: wrap;">
+				<MudChip T="string"
+						 Color="@(currentFilter == TaskFilter.All ? Color.Primary : Color.Default)"
+						 Variant="@(currentFilter == TaskFilter.All ? Variant.Filled : Variant.Outlined)"
+						 OnClick="@(() => SetFilter(TaskFilter.All))"
+						 Icon="@Icons.Material.Filled.List"
+						 Size="Size.Medium"
+						 Style="font-weight: 500;">
+					All (@totalCount)
+				</MudChip>
+
+				<MudChip T="string"
+						 Color="@(currentFilter == TaskFilter.Pending ? Color.Warning : Color.Default)"
+						 Variant="@(currentFilter == TaskFilter.Pending ? Variant.Filled : Variant.Outlined)"
+						 OnClick="@(() => SetFilter(TaskFilter.Pending))"
+						 Icon="@Icons.Material.Filled.Schedule"
+						 Size="Size.Medium"
+						 Style="font-weight: 500;">
+					Pending (@pendingCount)
+				</MudChip>
+
+				<MudChip T="string"
+						 Color="@(currentFilter == TaskFilter.Completed ? Color.Success : Color.Default)"
+						 Variant="@(currentFilter == TaskFilter.Completed ? Variant.Filled : Variant.Outlined)"
+						 OnClick="@(() => SetFilter(TaskFilter.Completed))"
+						 Icon="@Icons.Material.Filled.CheckCircle"
+						 Size="Size.Medium"
+						 Style="font-weight: 500;">
+					Completed (@completedCount)
+				</MudChip>
+			</MudChipSet>
+		</MudCardContent>
+	</MudCard>
+
+	<!-- Tasks List -->
+	@if (isLoading)
+	{
+		<MudCard Elevation="2" Style="border-radius: 8px;">
+			<MudCardContent Class="py-12">
+				<div class="d-flex flex-column align-center justify-center">
+					<MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+					<MudText Class="mt-4" Color="Color.Secondary">Loading tasks...</MudText>
+				</div>
+			</MudCardContent>
+		</MudCard>
+	}
+	else if (!tasks.Any())
+	{
+		<MudCard Elevation="2" Style="border-radius: 8px;">
+			<MudCardContent Class="py-12">
+				<div class="d-flex flex-column align-center text-center">
+					<MudIcon Icon="@GetEmptyStateIcon()"
+							 Size="Size.Large"
+							 Color="Color.Secondary"
+							 Style="font-size: 4rem; opacity: 0.5;" />
+					<MudText Typo="Typo.h6" Class="mt-4" Style="font-weight: 500;">
+						@GetEmptyStateTitle()
+					</MudText>
+					<MudText Color="Color.Secondary" Class="mt-2">
+						@GetEmptyStateMessage()
+					</MudText>
+				</div>
+			</MudCardContent>
+		</MudCard>
+	}
+	else
+	{
+		<MudStack Spacing="3">
+			@foreach (var task in tasks)
+			{
+				<TaskItemComponent TaskItem="@task"
+								   OnTaskUpdated="LoadTasks"
+								   OnTaskDeleted="LoadTasks" />
+			}
+		</MudStack>
+	}
+</MudContainer>
+
+@code {
+	private List<TaskItem> tasks = new();
+	private CreateTaskDto newTask = new();
+	private MudForm addTaskForm = null!;
+
+	private bool isLoading = false;
+	private bool isAdding = false;
+	private int totalCount = 0;
+	private int pendingCount = 0;
+	private int completedCount = 0;
+
+	private enum TaskFilter { All, Pending, Completed }
+	private TaskFilter currentFilter = TaskFilter.All;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadTasks();
+	}
+
+	private async Task AddTask()
+	{
+		if (string.IsNullOrWhiteSpace(newTask.Title))
+		{
+			Snackbar.Add("Task title is required", Severity.Warning);
+			return;
+		}
+
+		if (newTask.Title.Length > 200)
+		{
+			Snackbar.Add("Task title cannot exceed 200 characters", Severity.Warning);
+			return;
+		}
+
+		if (!string.IsNullOrEmpty(newTask.Description) && newTask.Description.Length > 1000)
+		{
+			Snackbar.Add("Description cannot exceed 1000 characters", Severity.Warning);
+			return;
+		}
+
+		isAdding = true;
+		try
+		{
+			var command = new CreateTaskCommand
+			{
+				Title = newTask.Title.Trim(),
+				Description = newTask.Description?.Trim() ?? string.Empty
+			};
+			await TaskCqrsService.CreateTaskAsync(command);
+			Snackbar.Add("Task added successfully", Severity.Success);
+			await ResetForm();
+			await LoadTasks();
+		}
+		catch (Exception ex)
+		{
+			Snackbar.Add($"Failed to add task: {ex.Message}", Severity.Error);
+		}
+		finally
+		{
+			isAdding = false;
+		}
+	}
+
+	private async Task ResetForm()
+	{
+		newTask = new CreateTaskDto();
+
+		if (addTaskForm != null)
+		{
+			await addTaskForm.ResetAsync();
+		}
+
+		StateHasChanged();
+	}
+
+	private async Task SetFilter(TaskFilter filter)
+	{
+		currentFilter = filter;
+		await LoadTasks();
+	}
+
+	private async Task LoadTasks()
+	{
+		isLoading = true;
+		StateHasChanged();
+
+		try
+		{
+			var allTasks = (await TaskCqrsService.GetAllTasksAsync()).ToList();
+			totalCount = allTasks.Count;
+			pendingCount = allTasks.Count(t => !t.IsCompleted);
+			completedCount = allTasks.Count(t => t.IsCompleted);
+
+			tasks = currentFilter switch
+			{
+				TaskFilter.Pending => allTasks.Where(t => !t.IsCompleted).ToList(),
+				TaskFilter.Completed => allTasks.Where(t => t.IsCompleted).ToList(),
+				_ => allTasks
+			};
+		}
+		catch (Exception ex)
+		{
+			Snackbar.Add($"Failed to load tasks: {ex.Message}", Severity.Error);
+			tasks = new List<TaskItem>();
+		}
+		finally
+		{
+			isLoading = false;
+			StateHasChanged();
+		}
+	}
+
+	private string GetEmptyStateIcon() => currentFilter switch
+	{
+		TaskFilter.Pending => Icons.Material.Filled.TaskAlt,
+		TaskFilter.Completed => Icons.Material.Filled.Celebration,
+		_ => Icons.Material.Filled.Inbox
+	};
+
+	private string GetEmptyStateTitle() => currentFilter switch
+	{
+		TaskFilter.Pending => "All caught up!",
+		TaskFilter.Completed => "No completed tasks yet",
+		_ => "No tasks yet"
+	};
+
+	private string GetEmptyStateMessage() => currentFilter switch
+	{
+		TaskFilter.Pending => "You have no pending tasks. Great job!",
+		TaskFilter.Completed => "Complete some tasks to see them here.",
+		_ => "Create your first task to get started."
+	};
+}

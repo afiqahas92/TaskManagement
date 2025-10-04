@@ -1,0 +1,73 @@
+﻿@inherits LayoutComponentBase
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0" Style="background: linear-gradient(135deg, #0056b3 0%, #003d82 100%); border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudSpacer />
+        <MudText Typo="Typo.h5" Style="font-weight: 500; letter-spacing: 0.5px;">Task Management</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Brightness4" Color="Color.Inherit" OnClick="ToggleTheme" />
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="1">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isDarkMode = false;
+
+    private MudTheme _theme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#0056b3",
+            Secondary = "#6c757d",
+            Success = "#28a745",
+            Error = "#dc3545",
+            Warning = "#ffc107",
+            Info = "#17a2b8",
+            AppbarBackground = "#0056b3",
+            Background = "#f5f7fa",
+            Surface = "#ffffff",
+            DrawerBackground = "#ffffff",
+            DrawerText = "#495057",
+            TextPrimary = "#212529",
+            TextSecondary = "#6c757d"
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#4a9eff",
+            Secondary = "#868e96",
+            Success = "#51cf66",
+            Error = "#ff6b6b",
+            Background = "#1a1d23",
+            Surface = "#25282e",
+            AppbarBackground = "#1a1d23",
+            DrawerBackground = "#25282e",
+            DrawerText = "#ffffff",
+            TextPrimary = "#ffffff",
+            TextSecondary = "#adb5bd"
+        }
+    };
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    void ToggleTheme()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
+}
